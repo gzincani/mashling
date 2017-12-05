@@ -10,6 +10,7 @@ branches:
   only:
     - master
     - /^v\d+\.\d+\.\d+(\.\d+)?(-\S*)?$/
+    - chore-mashling-version-update
     
 cache:
   bundler: false
@@ -31,42 +32,11 @@ script:
   - git clone https://github.com/TIBCOSoftware/mashling-cicd.git mashling-cicd
   - cp -r $GOPATH/src/github.com/TIBCOSoftware/mashling-cicd/dependency-config/* $GOPATH/src/github.com/TIBCOSoftware/mashling
   - cd mashling
+  - git status
   - godep restore
-  - go test ./...
+  #- go test ./...
   - go install ./...
+  - git status
   - make all
   - mashling help
-  - cd $GOPATH/src/github.com/TIBCOSoftware
-  - pushd mashling-cicd/sample-recipes
-  - rm -rf builds
-  - mkdir -p builds/latest
-  - chmod ugo+x ./build-recipes.sh ./sanity.sh
-  - ./build-recipes.sh
-  - ./sanity.sh
-  - popd
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then    
-    pushd mashling-cicd/docker/mashling;
-    chmod ugo+x ./build-mashling.sh ;
-    ./build-mashling.sh ;
-    popd ;
-    fi
-    
-after_script:
-  - "[ -f \"${HOME}/.netrc\" ] && rm -f ${HOME}/.netrc"
-
-after_success:
-  - "docker login -u=\"${DOCKER_USERNAME}\" -p=\"${DOCKER_PASSWORD}\" tibdocker.tibco.com"
-  - source $GOPATH/src/github.com/TIBCOSoftware/mashling-cicd/scripts/init.sh
-  - mashling::module::postbuild mashling mashling
-
-
-notifications: 
-  email: 
-    on_failure: always
-    on_success: always
-    recipients: 
-      - jpark@tibco.com
-      - rpolishe@tibco.com
-      - lmekala@tibco.com
-      - nthota@tibco.com
-      - ykalidin@tibco.com
+  
