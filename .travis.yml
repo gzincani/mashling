@@ -10,6 +10,7 @@ branches:
   only:
     - master
     - /^v\d+\.\d+\.\d+(\.\d+)?(-\S*)?$/
+    - feature-enable-perf-tests
     
 cache:
   bundler: false
@@ -26,42 +27,71 @@ install:
   - go get -u github.com/constabulary/gb/...
   - go get -u github.com/tools/godep/...
   - go get -u github.com/ains/go-test-html 
-  
-script:
-  - cd $GOPATH/src/github.com/TIBCOSoftware
-  - git clone https://github.com/TIBCOSoftware/mashling-cicd.git mashling-cicd
-  - cp -r $GOPATH/src/github.com/TIBCOSoftware/mashling-cicd/dependency-config/* $GOPATH/src/github.com/TIBCOSoftware/mashling
-  - cd mashling
-  - godep restore
-  - go test ./... -v 2> >(tee gotest_stderr_file) | tee gotest_stdout_file
-  - go install ./...
-  - make all
-  - mashling help
-  - cd $GOPATH/src/github.com/TIBCOSoftware
-  - pushd mashling-cicd/sample-recipes
-  - rm -rf builds
-  - mkdir -p builds/latest
-  - chmod ugo+x ./build-recipes.sh ./sanity.sh ./gotestreport.sh
-  - ./gotestreport.sh
-  - ./build-recipes.sh
-  - ./sanity.sh
-  - popd
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then    
-    pushd mashling-cicd/docker/mashling;
-    chmod ugo+x ./build-mashling.sh ;
-    ./build-mashling.sh ;
-    popd ;
-    fi  
-    
+
+jobs:
+  include:
+    - stage: deploy
+      script:
+        - cd $GOPATH/src/github.com/TIBCOSoftware
+        - git clone -b feature-enable-perf-tests https://github.com/TIBCOSoftware/mashling-cicd.git mashling-cicd
+        - git clone https://github.com/TIBCOSoftware/mashling-recipes.git
+        - cp -r $GOPATH/src/github.com/TIBCOSoftware/mashling-cicd/dependency-config/* $GOPATH/src/github.com/TIBCOSoftware/mashling
+        - cd mashling
+        - godep restore
+        - go test ./... -v 2> >(tee gotest_stderr_file) | tee gotest_stdout_file
+        - go install ./...
+        - make all
+        - pushd $GOPATH/src/github.com/TIBCOSoftware/mashling-cicd/performance-scripts
+        - chmod ugo+x ./run-performance-test.sh
+        - ./run-performance-test.sh
+        - popd
+        # - if [ "$TRAVIS_EVENT_TYPE" == "cron" ]; then
+        #   cd $GOPATH/src/github.com/TIBCOSoftware
+        #   git clone https://github.com/TIBCOSoftware/mashling-cicd.git mashling-cicd
+        #    git clone https://github.com/TIBCOSoftware/mashling-recipes.git
+        #   cp -r $GOPATH/src/github.com/TIBCOSoftware/mashling-cicd/dependency-config/* $GOPATH/src/github.com/TIBCOSoftware/mashling
+        #   cd mashling
+        #   godep restore
+        #   make all
+        #   pushd $GOPATH/src/github.com/TIBCOSoftware/mashling-cicd/performance-scripts
+        #   chmod ugo+x ./run-performance-test.sh
+        #   ./run-performance-test.sh
+        #   popd
+        #   fi
+    - stage: build
+      script:
+        - cd $GOPATH/src/github.com/TIBCOSoftware
+        - git clone https://github.com/TIBCOSoftware/mashling-cicd.git mashling-cicd
+        - cp -r $GOPATH/src/github.com/TIBCOSoftware/mashling-cicd/dependency-config/* $GOPATH/src/github.com/TIBCOSoftware/mashling
+        - cd mashling
+        - godep restore
+        - go test ./... -v 2> >(tee gotest_stderr_file) | tee gotest_stdout_file
+        - go install ./...
+        - make all
+        - mashling help
+        - cd $GOPATH/src/github.com/TIBCOSoftware
+        - pushd mashling-cicd/sample-recipes
+        - rm -rf builds
+        - mkdir -p builds/latest
+        - chmod ugo+x ./build-recipes.sh ./sanity.sh ./gotestreport.sh
+        - ./gotestreport.sh
+        - ./build-recipes.sh
+        - ./sanity.sh
+        - popd
+        - if [ "$TRAVIS_OS_NAME" == "linux" ]; then    
+          pushd mashling-cicd/docker/mashling;
+          chmod ugo+x ./build-mashling.sh ;
+          ./build-mashling.sh ;
+          popd ;
+          fi 
+      after_success:
+        - "docker login -u=\"${DOCKER_USERNAME}\" -p=\"${DOCKER_PASSWORD}\" tibdocker.tibco.com"
+        - source $GOPATH/src/github.com/TIBCOSoftware/mashling-cicd/scripts/init.sh
+        - mashling::module::postbuild mashling mashling
 after_script:
   - "[ -f \"${HOME}/.netrc\" ] && rm -f ${HOME}/.netrc"
   - "[ -f \"${HOME}/.aws\" ] && rm -f ${HOME}/.aws"
 
-after_success:
-  - "docker login -u=\"${DOCKER_USERNAME}\" -p=\"${DOCKER_PASSWORD}\" tibdocker.tibco.com"
-  - source $GOPATH/src/github.com/TIBCOSoftware/mashling-cicd/scripts/init.sh
-  - mashling::module::postbuild mashling mashling
-  
 notifications: 
   email: 
     on_failure: always
