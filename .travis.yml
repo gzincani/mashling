@@ -21,7 +21,7 @@ git:
 # Do a github login using token
 before_install:
   - "echo -e \"machine github.com\n  login ${GITHUB_USER_TOKEN}\" >> ~/.netrc"
-  - "docker login -u=\"${DOCKER_USERNAME}\" -p=\"${DOCKER_PASSWORD}\" tibdocker.tibco.com" ;
+  - "docker login -u=\"${DOCKER_USERNAME}\" -p=\"${DOCKER_PASSWORD}\" tibdocker.tibco.com" 
   - pip install --user awscli
 install:
   - go get -u github.com/constabulary/gb/...
