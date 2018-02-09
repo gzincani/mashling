@@ -10,7 +10,6 @@ branches:
   only:
     - master
     - /^v\d+\.\d+\.\d+(\.\d+)?(-\S*)?$/
-    - feature-enable-perf-tests
     
 cache:
   bundler: false
@@ -22,6 +21,7 @@ git:
 # Do a github login using token
 before_install:
   - "echo -e \"machine github.com\n  login ${GITHUB_USER_TOKEN}\" >> ~/.netrc"
+  - "docker login -u=\"${DOCKER_USERNAME}\" -p=\"${DOCKER_PASSWORD}\" tibdocker.tibco.com" ;
   - pip install --user awscli
 install:
   - go get -u github.com/constabulary/gb/...
@@ -34,7 +34,7 @@ jobs:
       script:
         - if [ "$TRAVIS_EVENT_TYPE" == "cron" ]; then
           cd $GOPATH/src/github.com/TIBCOSoftware;
-          git clone -b feature-enable-perf-tests https://github.com/TIBCOSoftware/mashling-cicd.git mashling-cicd;
+          git clone https://github.com/TIBCOSoftware/mashling-cicd.git mashling-cicd;
           cp -r $GOPATH/src/github.com/TIBCOSoftware/mashling-cicd/dependency-config/* $GOPATH/src/github.com/TIBCOSoftware/mashling;
           cd mashling;
           godep restore;
@@ -71,8 +71,7 @@ jobs:
           popd ;
           fi 
       after_success:
-        - if [ "$TRAVIS_EVENT_TYPE" != "cron" ]; then
-          "docker login -u=\"${DOCKER_USERNAME}\" -p=\"${DOCKER_PASSWORD}\" tibdocker.tibco.com" ;
+        - if [ "$TRAVIS_EVENT_TYPE" != "cron" ]; then          
           source $GOPATH/src/github.com/TIBCOSoftware/mashling-cicd/scripts/init.sh; 
           mashling::module::postbuild mashling mashling ;
           fi
