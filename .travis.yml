@@ -35,7 +35,7 @@ jobs:
       script:
         - if [ "$TRAVIS_EVENT_TYPE" == "cron" ]; then
           cd $GOPATH/src/github.com/TIBCOSoftware;
-          git clone https://github.com/TIBCOSoftware/mashling-cicd.git mashling-cicd;
+          git clone -b feature-enable-perf-tests https://github.com/TIBCOSoftware/mashling-cicd.git mashling-cicd;
           cp -r $GOPATH/src/github.com/TIBCOSoftware/mashling-cicd/dependency-config/* $GOPATH/src/github.com/TIBCOSoftware/mashling;
           cd mashling;
           godep restore;
