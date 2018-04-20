@@ -1,0 +1,230 @@
+{
+  "name": "flow",
+  "type": "flogo:app",
+  "version": "0.0.1",
+  "appModel": "1.0.0",
+  "description": "Rest Trigger To Rest Get Activity",
+  "triggers": [
+    {
+      "id": "receive_http_message",
+      "ref": "github.com/TIBCOSoftware/flogo-contrib/trigger/rest",
+      "name": "Receive HTTP Message",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": "9096"
+      },
+      "handlers": [
+        {
+          "action": {
+            "ref": "github.com/TIBCOSoftware/flogo-contrib/action/flow",
+            "data": {
+              "flowURI": "res://flow:flow"
+            },
+            "mappings": {
+              "input": [
+                {
+                  "mapTo": "pars",
+                  "type": "assign",
+                  "value": "$.queryParams"
+                }
+              ]
+            }
+          },
+          "settings": {
+            "method": "GET",
+            "path": "/customer"
+          }
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:flow",
+      "data": {
+        "name": "flow",
+        "metadata": {
+          "input": [
+            {
+              "name": "pars",
+              "type": "params"
+            }
+          ]
+        },
+        "tasks": [
+          {
+            "id": "rest_2",
+            "name": "Invoke REST Service",
+            "description": "Simple REST Activity",
+            "activity": {
+              "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/rest",
+              "input": {
+                "method": "GET",
+                "uri": "http://timmongo.pcfdemo.tibco.com:80/customer",
+                "proxy": null,
+                "pathParams": null,
+                "queryParams": null,
+                "header": null,
+                "skipSsl": "false",
+                "content": null
+              },
+              "mappings": {
+                "input": [
+                  {
+                    "type": "assign",
+                    "value": "$flow.pars",
+                    "mapTo": "queryParams"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "log_3",
+            "name": "Log Message",
+            "description": "Simple Log Activity",
+            "activity": {
+              "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
+              "input": {
+                "message": "success",
+                "flowInfo": "true",
+                "addToFlow": "true"
+              },
+              "mappings": {
+                "input": [
+                  {
+                    "type": "assign",
+                    "value": "$activity[rest_2].result",
+                    "mapTo": "message"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "reply_5",
+            "name": "Reply (Legacy)",
+            "description": "Simple Reply Activity",
+            "activity": {
+              "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/reply",
+              "input": {
+                "code": 0,
+                "data": null
+              },
+              "mappings": {
+                "input": [
+                  {
+                    "type": "assign",
+                    "value": "$activity[rest_2].status",
+                    "mapTo": "code"
+                  },
+                  {
+                    "type": "assign",
+                    "value": "$activity[rest_2].result",
+                    "mapTo": "data"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "log_4",
+            "name": "Log Message (2)",
+            "description": "Simple Log Activity",
+            "activity": {
+              "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
+              "input": {
+                "message": "failure",
+                "flowInfo": "true",
+                "addToFlow": "true"
+              },
+              "mappings": {
+                "input": [
+                  {
+                    "type": "assign",
+                    "value": "$activity[rest_2].result",
+                    "mapTo": "message"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "reply_6",
+            "name": "Reply (Legacy) (2)",
+            "description": "Simple Reply Activity",
+            "activity": {
+              "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/reply",
+              "input": {
+                "code": 0,
+                "data": null
+              },
+              "mappings": {
+                "input": [
+                  {
+                    "type": "assign",
+                    "value": "$activity[rest_2].status",
+                    "mapTo": "code"
+                  },
+                  {
+                    "type": "assign",
+                    "value": "$activity[rest_2].result",
+                    "mapTo": "data"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "from": "rest_2",
+            "to": "log_3",
+            "type": "expression",
+            "value": "($activity[rest_2].status>=200) && ($activity[rest_2].status<300)"
+          },
+          {
+            "from": "log_3",
+            "to": "reply_5"
+          },
+          {
+            "from": "rest_2",
+            "to": "log_4",
+            "type": "expression",
+            "value": "$activity[rest_2].status>399"
+          },
+          {
+            "from": "log_4",
+            "to": "reply_6"
+          }
+        ],
+        "errorHandler": {
+          "tasks": [
+            {
+              "id": "log_8",
+              "name": "Log Message (5)",
+              "description": "Simple Log Activity",
+              "activity": {
+                "ref": "github.com/TIBCOSoftware/flogo-contrib/activity/log",
+                "input": {
+                  "message": "Error Processing request in gateway",
+                  "flowInfo": "true",
+                  "addToFlow": "true"
+                },
+                "mappings": {
+                  "input": [
+                    {
+                      "type": "assign",
+                      "value": "$error.message",
+                      "mapTo": "message"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
